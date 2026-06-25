@@ -7,21 +7,34 @@ import authRouter from "./routes/auth.routes.js";
 import albumRouter from "./routes/albums.routes.js";
 import songRouter from "./routes/songs.routes.js";
 import statsRouter from "./routes/stats.routes.js";
-import { connectDB } from "./config/db.config.js";
+import { connectDB } from "./lib/db.config.js";
 import { AppError } from "./utils/GlobalErrorHandler.js";
 import { errorMiddleware } from "./middlewares/error.middleware.js";
+import { clerkMiddleware } from "@clerk/express";
+import fileUpload from "express-fileupload";
+import path from "path";
 
 dotenv.config();
-
 const app = express();
 const PORT = process.env.PORT || 5006;
+const __dirname = path.resolve();
 
 app.use(express.json()); // for parsing json
+app.use(clerkMiddleware()); // this will add 'auth' object to request => req.auth
 
 app.use(cors({
   origin: 'http://localhost:5173',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
+}));
+
+app.use(fileUpload({
+  useTempFiles: true, // enable sotring temp files
+  tempFileDir: path.join(__dirname, 'temp'), // store temp files here
+  createParentPath: true, // create folder if not exists
+  limits: {
+    fileSize: 5 * 1024 * 1024, //
+  }
 }));
 
 app.use("/api/user", userRouter);
@@ -31,10 +44,12 @@ app.use("/api/album", albumRouter);
 app.use("/api/song", songRouter);
 app.use("/api/stats", statsRouter);
 
-const startServer = async () => {
+const startServer = async () =>
+{
   try {
     await connectDB();
-    app.listen(PORT, () => {
+    app.listen(PORT, () =>
+    {
       console.log(`Server is running on port ${PORT}`);
     });
   } catch (error) {
@@ -43,7 +58,8 @@ const startServer = async () => {
   }
 }
 // fallback route, 404 handler
-app.use((req, res, next) => {
+app.use((req, res, next) =>
+{
   next(new AppError("Route not found", 404));
 });
 
